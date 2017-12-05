@@ -14,7 +14,7 @@ abstract class Sequence {
 
 case class ExpressionTerm(e: Bool) extends Sequence
 
-case class Delay(nCycles: Int) extends Sequence
+case class Delay(minCycles: Int, maxCycles: Option[Int] = None) extends Sequence
 
 case class Repeat(s: Sequence, min: Int, max: Option[Int] = None) extends Sequence
 
