@@ -57,7 +57,7 @@ abstract class EquivBaseSpec extends FlatSpec with BackendCompilationUtilities {
       |""".stripMargin
     val yosysScript = writeToFile(yosysScriptContents, testDir, "lec.ys")
 
-    val command = Seq("yosys", "-s", s"$yosysScript")
+    val command = Seq("yosys", "-q", "-s", s"$yosysScript")
     println(command.mkString(" "))
     command.! == 0
   }
