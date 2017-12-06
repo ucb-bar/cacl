@@ -62,3 +62,23 @@ abstract class EquivBaseSpec extends FlatSpec with BackendCompilationUtilities {
     command.! == 0
   }
 }
+
+// Who checks the checkers?
+class EquivSpec extends EquivBaseSpec {
+  class BrokenTest extends PropImpl(2) {
+    holds := in(0) && in(1)
+    def verilogImpl = """
+      |module gold(
+      |  input clock,
+      |  input reset,
+      |  input in_0,
+      |  input in_1,
+      |  output holds
+      |);
+      |  assign holds = in_0 || in_1;
+      |endmodule""".stripMargin
+  }
+  "Nonequivalent Chisel and Verilog modules" should "fail lec" in {
+    assert(!checkEquiv(new BrokenTest))
+  }
+}
