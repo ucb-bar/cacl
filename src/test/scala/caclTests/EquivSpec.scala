@@ -18,7 +18,7 @@ sealed trait PropImplIntf extends BaseModule {
 abstract class PropImpl(numInputs: Int) extends MultiIOModule {
   require(numInputs > 0)
   val in = IO(Input(Vec(numInputs, Bool())))
-  val fail = IO(Output(Bool()))
+  val holds = IO(Output(Bool()))
   def verilogImpl: String
 }
 
