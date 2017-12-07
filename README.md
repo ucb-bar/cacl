@@ -1,2 +1,2 @@
 # cacl
-Chisel Assertion Construction Language
+Chisel Assertion and Coverage Language
