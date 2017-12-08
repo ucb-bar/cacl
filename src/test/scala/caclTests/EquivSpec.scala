@@ -61,11 +61,42 @@ abstract class EquivBaseSpec extends FlatSpec with BackendCompilationUtilities {
     println(command.mkString(" "))
     command.! == 0
   }
+
+  // Generates Verilog and runs Yosys to check assertions
+  def checkAsserts(design: => Module): Boolean = {
+
+    val testDir = createTestDirectory(testName)
+
+    val (top: String, elabDesign: Module) =
+      chisel3.Driver.execute(Array("-td", s"$testDir"), () => design) match {
+        case ChiselExecutionSuccess(Some(cir),_,_) =>
+          val topMod = cir.components.find(_.name == cir.name).get.id
+          (cir.name, topMod)
+        case other =>
+          println(s"Got $other")
+          ("hi", "bye")
+      }
+    val designFile = new File(testDir, s"$top.v")
+    //val  = new File(testDir, s"${utils.BlackBoxAssert.name}.v")
+
+    val yosysScriptContents = s"""
+      |read_verilog -sv ${testDir.getAbsolutePath}/*.v
+      |prep; proc; opt; memory
+      |hierarchy -top $top
+      |flatten
+      |sat -verify  -prove-asserts -tempinduct -seq 1
+      |""".stripMargin
+    val yosysScript = writeToFile(yosysScriptContents, testDir, "lec.ys")
+
+    val command = Seq("yosys", "-q", "-s", s"$yosysScript")
+    println(command.mkString(" "))
+    command.! == 0
+  }
 }
 
 // Who checks the checkers?
 class EquivSpec extends EquivBaseSpec {
-  class BrokenTest extends PropImpl(2) {
+  class BrokenEquiv extends PropImpl(2) {
     holds := in(0) && in(1)
     def verilogImpl = """
       |module gold(
@@ -79,6 +110,18 @@ class EquivSpec extends EquivBaseSpec {
       |endmodule""".stripMargin
   }
   "Nonequivalent Chisel and Verilog modules" should "fail lec" in {
-    assert(!checkEquiv(new BrokenTest))
+    assert(!checkEquiv(new BrokenEquiv))
+  }
+
+  class BrokenAssert extends Module {
+    val io = IO(new Bundle {
+      val a = Input(Bool())
+      val b = Input(Bool())
+    })
+    utils.realassert(io.a === io.b)
+  }
+  "Falsifiable assertions" should "fail sat" in {
+    assert(!checkAsserts(new BrokenAssert))
   }
 }
+
