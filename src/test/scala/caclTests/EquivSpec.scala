@@ -7,19 +7,28 @@ import firrtl.transforms.{BlackBoxSourceHelper, BlackBoxInline}
 import firrtl.util.BackendCompilationUtilities
 import org.scalatest._
 
+import cacl._
+import cacl.sequence._
+
 import java.io.{File, FileWriter}
 import scala.sys.process._
 
-sealed trait PropImplIntf extends BaseModule {
-  def clock: Clock
-  def reset: Reset
+class PropIntf(numInputs: Int) extends Bundle {
+  require(numInputs > 0)
+  val in = Input(Vec(numInputs, Bool()))
+  val seqMatch = Output(Bool())
 }
 
-abstract class PropImpl(numInputs: Int) extends MultiIOModule {
-  require(numInputs > 0)
-  val in = IO(Input(Vec(numInputs, Bool())))
-  val holds = IO(Output(Bool()))
-  def verilogImpl: String
+abstract class PropImpl(numInputs: Int) extends Module {
+  val io = IO(new PropIntf(numInputs))
+
+  def seqBuilder: BoundSequenceBuilder
+
+  val signals = io.in
+  val sequence = Module(seqBuilder())
+  sequence.io.invoke := true.B
+  sequence.io.data := signals
+  io.seqMatch := sequence.io.matches.valid && sequence.io.matches.bits
 }
 
 abstract class EquivBaseSpec extends FlatSpec with BackendCompilationUtilities {
@@ -33,27 +42,30 @@ abstract class EquivBaseSpec extends FlatSpec with BackendCompilationUtilities {
     f
   }
 
-  // Generates Verilog and runs Yosys to check equivalence of two PropImpls
-  def checkEquiv(design: => PropImpl): Boolean = {
+  def compileModule[T <: RawModule](targetDir: File, mod: => T): (String, T) = 
+    chisel3.Driver.execute(Array("-td", s"$targetDir"), () => mod) match {
+      case ChiselExecutionSuccess(Some(cir),_,_) =>
+        val topMod = cir.components.find(_.name == cir.name).get.id
+        (cir.name, topMod.asInstanceOf[T])
+    }
+
+  /** Generates Verilog and runs Yosys to check equivalence of two Modules */
+  def checkEquiv(a: => Module, b: => Module): Boolean = {
 
     val testDir = createTestDirectory(testName)
 
-    val (top: String, elabDesign: PropImpl) =
-      chisel3.Driver.execute(Array("-td", s"$testDir"), () => design) match {
-        case ChiselExecutionSuccess(Some(cir),_,_) =>
-          val topMod = cir.components.find(_.name == cir.name).get.id
-          (cir.name, topMod)
-      }
-    val designFile = new File(testDir, s"$top.v")
-    val gold: File = writeToFile(elabDesign.verilogImpl, testDir, "gold.v")
+    val (aName: String, elabA: Module) = compileModule(testDir, a)
+    val (bName: String, elabB: Module) = compileModule(testDir, b)
+    val aFile = new File(testDir, s"$aName.v")
+    val bFile = new File(testDir, s"$bName.v")
 
     val yosysScriptContents = s"""
-      |read_verilog ${designFile.getAbsoluteFile}
-      |read_verilog ${gold.getAbsoluteFile}
+      |read_verilog ${aFile.getAbsoluteFile}
+      |read_verilog ${bFile.getAbsoluteFile}
       |prep; proc; opt; memory
-      |miter -equiv -flatten $top gold miter
+      |miter -equiv -flatten $aName $bName miter
       |hierarchy -top miter
-      |sat -verify -tempinduct -prove trigger 0 -seq 1 miter
+      |sat -verify -tempinduct -prove trigger 0 -set in_reset 0 -set-at 0 in_reset 1 -seq 1 miter
       |""".stripMargin
     val yosysScript = writeToFile(yosysScriptContents, testDir, "lec.ys")
 
@@ -61,6 +73,7 @@ abstract class EquivBaseSpec extends FlatSpec with BackendCompilationUtilities {
     println(command.mkString(" "))
     command.! == 0
   }
+
 
   // Generates Verilog and runs Yosys to check assertions
   def checkAsserts(design: => Module): Boolean = {
@@ -95,24 +108,7 @@ abstract class EquivBaseSpec extends FlatSpec with BackendCompilationUtilities {
 }
 
 // Who checks the checkers?
-class EquivSpec extends EquivBaseSpec {
-  class BrokenEquiv extends PropImpl(2) {
-    holds := in(0) && in(1)
-    def verilogImpl = """
-      |module gold(
-      |  input clock,
-      |  input reset,
-      |  input in_0,
-      |  input in_1,
-      |  output holds
-      |);
-      |  assign holds = in_0 || in_1;
-      |endmodule""".stripMargin
-  }
-  "Nonequivalent Chisel and Verilog modules" should "fail lec" in {
-    assert(!checkEquiv(new BrokenEquiv))
-  }
-
+final class EquivSpec extends EquivBaseSpec {
   class BrokenAssert extends Module {
     val io = IO(new Bundle {
       val a = Input(Bool())

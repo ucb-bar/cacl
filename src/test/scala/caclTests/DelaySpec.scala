@@ -1,34 +1,29 @@
 package caclTests
 
+import cacl._
+import cacl.sequence._
 import chisel3._
 
-// s1 ##1 s2
-class DelayTest extends PropImpl(2) {
-  val prev = RegNext(in(0))
-  holds := prev && in(1)
-
-  def verilogImpl = """
-module gold(
-  input clock,
-  input reset,
-  input in_0,
-  input in_1,
-  output holds
-);
-  reg prev;
-
-  assign holds = prev && in_1;
-
-  always @(posedge clock) begin
-    prev <= in_0;
-  end
-endmodule
-""".stripMargin
+// Builds sequence a ##1 b
+class DelayOneSequenceWrapper extends PropImpl(2) {
+  def seqBuilder = SequenceBuilder(
+    signals,
+    ExpressionSequence(io.in(0)),
+    DelaySequence(1),
+    ExpressionSequence(io.in(1))
+  )
 }
 
-class DelaySpec extends EquivBaseSpec {
-  "s1 ##1 s2" should "match Verilog specification" in {
-    assert(checkEquiv(new DelayTest))
+// Direct implementation of a ##1 b
+class DelayOneRefImpl extends Module {
+  val io = IO(new PropIntf(2))
+  val prev = RegNext(io.in(0))
+  io.seqMatch := prev && io.in(1)
+}
+
+class DelayOneSequenceSpec extends EquivBaseSpec {
+  "a ##1 b" should "be equivalent to a handwritten FSM" in {
+    assert(checkEquiv(new DelayOneSequenceWrapper, new DelayOneRefImpl))
   }
 }
 
