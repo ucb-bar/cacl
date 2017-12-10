@@ -1,4 +1,4 @@
-package cacl
+package cacl.sequence
 
 import chisel3._
 import chisel3.util.{Cat, ValidIO}
@@ -13,6 +13,7 @@ class ModularSequenceInterface(val nSignals: Int) extends Bundle {
 
 abstract class ModularSequence extends Module {
   val io: ModularSequenceInterface
+  def maxTime: Int
 }
 
 object EmptySequence {
@@ -21,6 +22,7 @@ object EmptySequence {
 
 class EmptySequence(signals: Seq[Bool]) extends ModularSequence {
   val io = IO(new ModularSequenceInterface(signals.size))
+  def maxTime: Int = 0
   io.busy := false.B
   io.matches.valid := io.invoke
   io.matches.bits := io.invoke
@@ -33,6 +35,7 @@ object ExpressionSequence {
 class ExpressionSequence(exp: Bool, signals: Seq[Bool], genChild: () => ModularSequence) extends ModularSequence {
   val io = IO(new ModularSequenceInterface(signals.size))
   val child = Module(genChild())
+  def maxTime: Int = child.maxTime
   child.io.invoke := io.invoke && io.data(signals.indexOf(exp))
   child.io.data := io.data
   io.busy := child.io.busy
@@ -47,6 +50,7 @@ object DelaySequence {
 class DelaySequence(nCycles: Int, signals: Seq[Bool], genChild: () => ModularSequence) extends ModularSequence {
   val io = IO(new ModularSequenceInterface(signals.size))
   val child = Module(genChild())
+  def maxTime: Int = child.maxTime + nCycles
   val invokeDelayed = RegInit(UInt(nCycles.W), 0.U)
   invokeDelayed := Cat(io.invoke, invokeDelayed >> 1)
   child.io.invoke := invokeDelayed(0)
@@ -64,6 +68,7 @@ class VariableDelaySequence(minCycles: Int, maxCycles: Int, signals: Seq[Bool], 
   val io = IO(new ModularSequenceInterface(signals.size))
   val nReplicas = maxCycles - minCycles + 1
   val children = Seq.fill(nReplicas){ Module(genChild()) }
+  def maxTime: Int = children(0).maxTime + maxCycles
   val invokeDelayed = RegInit(UInt(maxCycles.W), 0.U)
   invokeDelayed := Cat(io.invoke, invokeDelayed >> 1)
   children.zipWithIndex.foreach({ case (c, i) =>
@@ -76,10 +81,6 @@ class VariableDelaySequence(minCycles: Int, maxCycles: Int, signals: Seq[Bool], 
 }
 
 object SequenceBuilder {
-  type SequenceSignals = Seq[Bool]
-  type BoundSequenceBuilder = (() => ModularSequence)
-  type BoundSignalsSequenceBuilder = BoundSequenceBuilder => BoundSequenceBuilder
-  type UnboundSequenceBuilder = SequenceSignals => BoundSignalsSequenceBuilder
   private def bindSignals(sb: UnboundSequenceBuilder, signals: SequenceSignals) = sb(signals)
   private def bindChild(outer: BoundSignalsSequenceBuilder, inner: BoundSequenceBuilder) = outer(inner)
   def apply(signals: SequenceSignals, sequences: UnboundSequenceBuilder*): BoundSequenceBuilder = {

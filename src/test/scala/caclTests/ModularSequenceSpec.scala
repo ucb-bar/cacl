@@ -1,6 +1,7 @@
 package caclTests
 
 import cacl._
+import cacl.sequence._
 import chisel3._
 import firrtl._
 import org.scalatest._
