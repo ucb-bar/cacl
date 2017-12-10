@@ -52,7 +52,8 @@ class DelaySequence(nCycles: Int, signals: Seq[Bool], genChild: () => ModularSeq
   val child = Module(genChild())
   def maxTime: Int = child.maxTime + nCycles
   val invokeDelayed = RegInit(UInt(nCycles.W), 0.U)
-  invokeDelayed := Cat(io.invoke, invokeDelayed >> 1)
+  // Note: shr doesn't correctly produce a zero-width wire here -> use an if
+  invokeDelayed := (if (nCycles > 1) Cat(io.invoke, invokeDelayed >> 1) else io.invoke)
   child.io.invoke := invokeDelayed(0)
   child.io.data := io.data
   io.busy := child.io.busy || invokeDelayed.orR
@@ -70,7 +71,8 @@ class VariableDelaySequence(minCycles: Int, maxCycles: Int, signals: Seq[Bool], 
   val children = Seq.fill(nReplicas){ Module(genChild()) }
   def maxTime: Int = children(0).maxTime + maxCycles
   val invokeDelayed = RegInit(UInt(maxCycles.W), 0.U)
-  invokeDelayed := Cat(io.invoke, invokeDelayed >> 1)
+  // Note: shr doesn't correctly produce a zero-width wire here -> use an if
+  invokeDelayed := (if (maxCycles > 1) Cat(io.invoke, invokeDelayed >> 1) else io.invoke)
   children.zipWithIndex.foreach({ case (c, i) =>
     c.io.invoke := invokeDelayed(i)
     c.io.data := io.data
