@@ -15,6 +15,14 @@ abstract class Sequence {
 
 case class ExpressionTerm(e: Bool) extends Sequence
 
+object Past {
+  def apply[T <: Data](data: T): T = RegNext(data)
+}
+object Stable {
+  def apply[T <: Data](data: T): Bool = data.asUInt === Past(data).asUInt
+}
+
+
 case class Delay(minCycles: Int, maxCycles: Option[Int] = None) extends Sequence
 object Delay {
   def apply(minCycles: Int, maxCycles: Int) = new Delay(minCycles, Some(maxCycles))
