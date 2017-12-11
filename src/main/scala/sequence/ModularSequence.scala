@@ -1,5 +1,6 @@
 package cacl.sequence
 
+import cacl._
 import chisel3._
 import chisel3.util.{Cat, ValidIO}
 
@@ -89,5 +90,21 @@ object SequenceBuilder {
   def apply(signals: SequenceSignals, sequences: UnboundSequenceBuilder*): BoundSequenceBuilder = {
     val boundToSignals = sequences.map(bindSignals(_, signals))
     boundToSignals.foldRight[BoundSequenceBuilder](EmptySequence(signals))(bindChild)
+  }
+  private [cacl] def expand(s: Sequence) : (SequenceSignals, Seq[UnboundSequenceBuilder]) = s match {
+    case ExpressionTerm(ref) => (List(ref), List(ExpressionSequence(ref) _))
+    case Delay(min, None) => (List.empty, List(DelaySequence(min) _))
+    case Delay(min, Some(max)) => (List.empty, List(VariableDelaySequence(min, max) _))
+    case Repeat(s, min, None) =>
+      val (signals, builders) = expand(s)
+      (List.fill(min)(signals).flatten, List.fill(min)(builders).flatten)
+    case SequenceChain(xs) =>
+      val (signals, builders) = xs.map(expand).unzip
+      (signals.flatten, builders.flatten)
+    case _ => ???
+  }
+  def apply(sequence: Sequence): BoundSequenceBuilder = {
+    val (signals, seqs) = expand(sequence)
+    apply(signals, seqs: _*)
   }
 }
