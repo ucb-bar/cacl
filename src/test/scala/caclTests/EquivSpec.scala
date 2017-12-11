@@ -113,7 +113,7 @@ abstract class EquivBaseSpec extends FlatSpec with BackendCompilationUtilities {
       |prep; proc; opt; memory
       |hierarchy -top $top
       |flatten
-      |sat -verify  -prove-asserts -tempinduct -seq 1
+      |sat -verify  -prove-asserts -tempinduct -set reset 0 -set-at 0 reset 1 -set-init-zero -seq 1
       |""".stripMargin
     val yosysScript = writeToFile(yosysScriptContents, testDir, "lec.ys")
 
