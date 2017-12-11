@@ -36,10 +36,11 @@ class ExpressionSequence(exp: Bool, signals: Seq[Bool], genChild: () => ModularS
   val io = IO(new ModularSequenceInterface(signals.size))
   val child = Module(genChild())
   def maxTime: Int = child.maxTime
-  child.io.invoke := io.invoke && io.data(signals.indexOf(exp))
+  val expData = io.data(signals.indexOf(exp))
+  child.io.invoke := io.invoke && expData
   child.io.data := io.data
   io.busy := child.io.busy
-  io.matches.valid := child.io.matches.valid
+  io.matches.valid := child.io.matches.valid || (io.invoke && !expData)
   io.matches.bits := child.io.matches.bits
 }
 
