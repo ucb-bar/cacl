@@ -1,10 +1,11 @@
-package caclTests
+
+package cacl
 
 import chisel3._
 import chisel3.experimental._
 import chisel3.util.HasBlackBoxInline
 
-package object utils {
+object assert {
   class BlackBoxAssert extends BlackBox with HasBlackBoxInline {
     val io = IO(new Bundle {
       val clock = Input(Clock())
@@ -29,7 +30,7 @@ package object utils {
   }
 
   // Insert Verilog assert in a blackbox
-  def realassert(cond: Bool): Unit = {
+  def apply(cond: Bool) = {
     val mod = Module(new BlackBoxAssert)
     mod.io.clock := Module.clock
     mod.io.reset := Module.reset

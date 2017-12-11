@@ -1,7 +1,8 @@
 package caclTests
 
 import chisel3._
-import caclTests.utils.realassert
+import cacl._
+import cacl.assert
 
 class Counter(width: Int) extends Module {
   val io = IO(new Bundle {
@@ -35,9 +36,9 @@ class Counter(width: Int) extends Module {
     count := count -% 1.U
   }
   // Check if increment is about to overflow count
-  realassert(!do_inc || (count =/= ("b" + "1"*width).U))
+  assert(!do_inc || (count =/= ("b" + "1"*width).U))
   // Check if decrement is about to underflow counter
-  realassert(!do_dec || (count =/= 0.U))
+  assert(!do_dec || (count =/= 0.U))
 }
 
 class CounterSpec extends EquivBaseSpec {

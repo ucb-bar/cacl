@@ -130,7 +130,7 @@ final class EquivSpec extends EquivBaseSpec {
       val a = Input(Bool())
       val b = Input(Bool())
     })
-    utils.realassert(io.a === io.b)
+    cacl.assert(io.a === io.b)
   }
   "Falsifiable assertions" should "fail sat" in {
     assert(!checkAsserts(new BrokenAssert))
