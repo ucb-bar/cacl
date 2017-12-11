@@ -5,7 +5,13 @@ import cacl._
 import cacl.assert
 import cacl.Sequence._
 
+/** Up-down, saturating, loadable Counter
+  *
+  * Example adapted from Counter example on pg. 375-385
+  * "The Art of Verification with SystemVerilog Assertions" by Hague, Michelson, and Khan
+  */
 class Counter(width: Int) extends Module {
+  require(width > 1, "width of Counter must be greater than 1!")
   val io = IO(new Bundle {
     val clear = Input(Bool())
     val load = Input(Bool())
@@ -61,7 +67,9 @@ class Counter(width: Int) extends Module {
 
 class CounterSpec extends EquivBaseSpec {
   "Counter" should "pass formal verification" in {
-    assert(checkAsserts(new Counter(8)))
+    for (width <- 2 to 10) {
+      assert(checkAsserts(new Counter(width)))
+    }
   }
 }
 
