@@ -5,7 +5,7 @@ import cacl.sequence._
 import chisel3._
 
 // Builds sequence a ##1 b
-class DelayOneSequenceWrapper extends PropImpl(2) {
+class DelayOneSequenceWrapper extends SequenceImpl(2) {
   def seqBuilder = SequenceBuilder(
     signals,
     ExpressionSequence(io.in(0)),
@@ -16,8 +16,8 @@ class DelayOneSequenceWrapper extends PropImpl(2) {
 
 // Direct implementation of a ##1 b
 class DelayOneRefImpl extends Module {
-  val io = IO(new PropIntf(2))
-  val prev = RegNext(io.in(0))
+  val io = IO(new SequenceIntf(2))
+  val prev = RegNext(io.in(0), false.B)
   io.seqMatch := prev && io.in(1)
 }
 

@@ -5,7 +5,7 @@ import cacl.sequence._
 import chisel3._
 
 // Builds sequence a ##1 b
-class IdentitySequenceWrapper extends PropImpl(1) {
+class IdentitySequenceWrapper extends SequenceImpl(1) {
   def seqBuilder = SequenceBuilder(
     signals,
     ExpressionSequence(io.in(0))
@@ -14,7 +14,7 @@ class IdentitySequenceWrapper extends PropImpl(1) {
 
 // Direct implementation of a ##1 b
 class IdentityRefImpl extends Module {
-  val io = IO(new PropIntf(1))
+  val io = IO(new SequenceIntf(1))
   io.seqMatch := io.in(0)
 }
 

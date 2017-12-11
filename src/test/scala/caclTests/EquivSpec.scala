@@ -13,14 +13,14 @@ import cacl.sequence._
 import java.io.{File, FileWriter}
 import scala.sys.process._
 
-class PropIntf(numInputs: Int) extends Bundle {
+class SequenceIntf(numInputs: Int) extends Bundle {
   require(numInputs > 0)
   val in = Input(Vec(numInputs, Bool()))
   val seqMatch = Output(Bool())
 }
 
-abstract class PropImpl(numInputs: Int) extends Module {
-  val io = IO(new PropIntf(numInputs))
+abstract class SequenceImpl(numInputs: Int) extends Module {
+  val io = IO(new SequenceIntf(numInputs))
 
   def seqBuilder: BoundSequenceBuilder
 
@@ -29,6 +29,23 @@ abstract class PropImpl(numInputs: Int) extends Module {
   sequence.io.invoke := true.B
   sequence.io.data := signals
   io.seqMatch := sequence.io.matches.valid && sequence.io.matches.bits
+}
+
+class PropertyIntf(numInputs: Int) extends Bundle {
+  require(numInputs > 0)
+  val in = Input(Vec(numInputs, Bool()))
+  val satisfied = Output(Bool())
+}
+
+abstract class PropertyImpl(numInputs: Int) extends Module {
+  val io = IO(new PropertyIntf(numInputs))
+
+  val signals = io.in
+  def implicationGen: () => OverlappingImplication
+
+  val implication = Module(implicationGen())
+  implication.io.data := signals
+  io.satisfied := implication.io.satisfied
 }
 
 abstract class EquivBaseSpec extends FlatSpec with BackendCompilationUtilities {
@@ -65,7 +82,7 @@ abstract class EquivBaseSpec extends FlatSpec with BackendCompilationUtilities {
       |prep; proc; opt; memory
       |miter -equiv -flatten $aName $bName miter
       |hierarchy -top miter
-      |sat -verify -tempinduct -prove trigger 0 -set in_reset 0 -set-at 0 in_reset 1 -seq 1 miter
+      |sat -verify -tempinduct -prove trigger 0 -set in_reset 0 -set-at 0 in_reset 1 -set-init-zero -seq 1 miter
       |""".stripMargin
     val yosysScript = writeToFile(yosysScriptContents, testDir, "lec.ys")
 
@@ -73,7 +90,6 @@ abstract class EquivBaseSpec extends FlatSpec with BackendCompilationUtilities {
     println(command.mkString(" "))
     command.! == 0
   }
-
 
   // Generates Verilog and runs Yosys to check assertions
   def checkAsserts(design: => Module): Boolean = {
