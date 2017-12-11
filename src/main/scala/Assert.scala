@@ -38,13 +38,15 @@ object assert {
     mod.io.reset := Module.reset
     mod.io.cond := cond
   }
-  def apply(property: Implication): Unit = {
-    val (antSigs, antBuilders) = SequenceBuilder.expand(property.lhs)
-    val (conSigs, conBuilders) = SequenceBuilder.expand(property.rhs)
-    val signals = antSigs ++ conSigs
-    val mod = Module(new OverlappingImplication(signals, antBuilders, conBuilders))
-    mod.io.data := signals
-    assert(mod.io.satisfied)
+  def apply(property: Property): Unit = property match {
+    case Implication(lhs, rhs) =>
+      val (antSigs, antBuilders) = SequenceBuilder.expand(lhs)
+      val (conSigs, conBuilders) = SequenceBuilder.expand(rhs)
+      val signals = antSigs ++ conSigs
+      val mod = Module(new OverlappingImplication(signals, antBuilders, conBuilders))
+      mod.io.data := signals
+      assert(mod.io.satisfied)
+    case _ => ???
   }
   def apply(sequence: Sequence): Unit = {
     apply(Implication(ExpressionTerm(true.B), sequence))

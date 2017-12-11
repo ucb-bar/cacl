@@ -22,7 +22,6 @@ object Stable {
   def apply[T <: Data](data: T): Bool = data.asUInt === Past(data).asUInt
 }
 
-
 case class Delay(minCycles: Int, maxCycles: Option[Int] = None) extends Sequence
 object Delay {
   def apply(minCycles: Int, maxCycles: Int) = new Delay(minCycles, Some(maxCycles))
@@ -35,4 +34,6 @@ object Repeat {
 
 case class SequenceChain(seqs: Seq[Sequence]) extends Sequence
 
-case class Implication(lhs: Sequence, rhs: Sequence)
+abstract class Property
+
+case class Implication(lhs: Sequence, rhs: Sequence) extends Property
