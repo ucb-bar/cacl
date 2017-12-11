@@ -3,6 +3,7 @@ package caclTests
 import chisel3._
 import cacl._
 import cacl.assert
+import cacl.Sequence._
 
 class Counter(width: Int) extends Module {
   val io = IO(new Bundle {
@@ -39,6 +40,8 @@ class Counter(width: Int) extends Module {
   assert(!do_inc || (count =/= ("b" + "1"*width).U))
   // Check if decrement is about to underflow counter
   assert(!do_dec || (count =/= 0.U))
+  // Reset and clear zero the counter
+  assert((reset.toBool || io.clear) |=> (count === 0.U))
 }
 
 class CounterSpec extends EquivBaseSpec {
