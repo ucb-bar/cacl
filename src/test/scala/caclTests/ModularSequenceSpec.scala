@@ -18,6 +18,10 @@ class ModularSequenceWrapper extends SequenceImpl(3) {
   )
 }
 
+class ModularSequenceWrapper2 extends SequenceImpl(3) {
+  def seqBuilder = SequenceBuilder(Sequence(io.in(0), Delay(1, 2), io.in(1), Delay(1), io.in(2)))
+}
+
 // Direct implementation of a ##[1:2] b ##1 c
 class A_Delay1to2_B_Delay1_C extends Module {
   val io = IO(new SequenceIntf(3))
@@ -36,7 +40,10 @@ class A_Delay1to2_B_Delay1_C extends Module {
 }
 
 class ModularSequenceSpec extends EquivBaseSpec {
-  "a ##[1:2] b ##1 c" should "be equivalent to handwritten FSM" in {
+  "a ##[1:2] b ##1 c" should "be expressible with SequenceBuilders" in {
     assert(checkEquiv(new ModularSequenceWrapper, new A_Delay1to2_B_Delay1_C ))
+  }
+  it should "be expressible with the Frontend" in {
+    assert(checkEquiv(new ModularSequenceWrapper2, new A_Delay1to2_B_Delay1_C ))
   }
 }
