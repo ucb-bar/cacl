@@ -10,13 +10,20 @@ object Sequence {
 
 abstract class Sequence {
   def |->(rhs: Sequence): Implication = Implication(this, rhs)
+  def |=>(rhs: Sequence): Implication = Implication(this, SequenceChain(Seq(Delay(1), rhs)))
 }
 
 case class ExpressionTerm(e: Bool) extends Sequence
 
 case class Delay(minCycles: Int, maxCycles: Option[Int] = None) extends Sequence
+object Delay {
+  def apply(minCycles: Int, maxCycles: Int) = new Delay(minCycles, Some(maxCycles))
+}
 
 case class Repeat(s: Sequence, min: Int, max: Option[Int] = None) extends Sequence
+object Repeat {
+  def apply(s: Sequence, min: Int, max: Int) = new Repeat(s, min, Some(max))
+}
 
 case class SequenceChain(seqs: Seq[Sequence]) extends Sequence
 
