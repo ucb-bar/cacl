@@ -28,7 +28,7 @@ class OverlappingImplication(signals: SequenceSignals, antecedent: Seq[UnboundSe
   consequentReps ++= Seq.fill(nReps){ Module(boundConsBuilder()) }
 
   val invokeScheduler = Counter(nReps + 1)
-
+  invokeScheduler.inc()
   // TODO (amagyar): check if any sequence is invoked while busy -> metassertion fail
 
   (antecedentReps zip consequentReps).zipWithIndex.foreach({ case ((a, c), i) =>
