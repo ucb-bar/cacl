@@ -11,13 +11,17 @@ class ImplicationInterface(val nSignals: Int) extends Bundle {
   val data = Input(Vec(nSignals, Bool()))
 }
 
+object OverlappingImplication {
+  def apply(signals: SequenceSignals, antecedent: Seq[UnboundSequenceBuilder], consequent: Seq[UnboundSequenceBuilder]) = new OverlappingImplication(signals, antecedent, consequent)
+}
+
 class OverlappingImplication(signals: SequenceSignals, antecedent: Seq[UnboundSequenceBuilder], consequent: Seq[UnboundSequenceBuilder]) extends Module {
   val io = IO(new ImplicationInterface(signals.size))
   val boundAnteBuilder = SequenceBuilder(signals, antecedent:_*)
   val boundConsBuilder = SequenceBuilder(signals, consequent:_*)
 
   val antecedentReps = mutable.ArrayBuffer(Module(boundAnteBuilder()))
-  val consequentReps = mutable.ArrayBuffer(Module(boundAnteBuilder()))
+  val consequentReps = mutable.ArrayBuffer(Module(boundConsBuilder()))
 
   val nReps = antecedentReps(0).maxTime + consequentReps(0).maxTime
   antecedentReps ++= Seq.fill(nReps){ Module(boundAnteBuilder()) }

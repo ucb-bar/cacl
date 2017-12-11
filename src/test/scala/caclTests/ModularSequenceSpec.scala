@@ -37,7 +37,7 @@ class ModularSequenceWrapper extends Module {
   )
   val topSequence = Module(topSequenceBuilder())
   topSequence.io.invoke := true.B
-  topSequence.io.data := signals
+  topSequence.io.data := Vec(signals)
   io.sequenceMatch := topSequence.io.matches.valid && topSequence.io.matches.bits
 }
 
