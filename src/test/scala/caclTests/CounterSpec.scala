@@ -42,6 +42,21 @@ class Counter(width: Int) extends Module {
   assert(!do_dec || (count =/= 0.U))
   // Reset and clear zero the counter
   assert((reset.toBool || io.clear) |=> (count === 0.U))
+  // Load behaves correctly
+  assert((io.load && !io.clear) |=> (count === Past(io.din)))
+  // The counter increments correctly
+  assert((io.inc && !io.load && !io.clear && !io.dec && !saturated) |=>
+           (count === (Past(count) + 1.U)))
+  // The counter does not overflow except during a load or clear
+  assert((!io.load && !io.clear && (count === ("b" + "1"*width).U)) |=> (count =/= 0.U))
+  // The counter decrements correctly
+  assert((io.dec && !io.load && !io.clear && !io.inc && !zeroed) |=>
+          (count === (Past(count) - 1.U)))
+  // The counter does not underflow except during a load
+  assert((!io.load && (count === 0.U)) |=> (count =/= ("b" + "1"*width).U))
+  // The counter is stable when it should not change
+  assert((!io.load && !io.clear && ((!io.inc && !io.dec) || (io.inc && io.dec))) |=>
+           Stable(count))
 }
 
 class CounterSpec extends EquivBaseSpec {
