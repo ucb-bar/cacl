@@ -10,7 +10,7 @@ object Sequence {
 
 abstract class Sequence {
   def |->(rhs: Sequence): Implication = Implication(this, rhs)
-  def |=>(rhs: Sequence): Implication = Implication(this, SequenceChain(Seq(Delay(1), rhs)))
+  def |=>(rhs: Sequence): Implication = Implication(this, Sequence(Delay(1), rhs))
 }
 
 case class ExpressionTerm(e: Bool) extends Sequence
