@@ -82,7 +82,7 @@ abstract class EquivBaseSpec extends FlatSpec with BackendCompilationUtilities {
       |prep; proc; opt; memory
       |miter -equiv -flatten $aName $bName miter
       |hierarchy -top miter
-      |sat -verify -tempinduct -prove trigger 0 -set in_reset 0 -set-at 0 in_reset 1 -set-init-zero -seq 1 miter
+      |sat -verify -tempinduct -prove trigger 0 -set in_reset 0 -set-at 1 in_reset 1 -seq 1 miter
       |""".stripMargin
     val yosysScript = writeToFile(yosysScriptContents, testDir, "lec.ys")
 
@@ -101,19 +101,16 @@ abstract class EquivBaseSpec extends FlatSpec with BackendCompilationUtilities {
         case ChiselExecutionSuccess(Some(cir),_,_) =>
           val topMod = cir.components.find(_.name == cir.name).get.id
           (cir.name, topMod)
-        case other =>
-          println(s"Got $other")
-          ("hi", "bye")
+        case other => throw new Exception("Unexpected failure!")
       }
     val designFile = new File(testDir, s"$top.v")
-    //val  = new File(testDir, s"${utils.BlackBoxAssert.name}.v")
 
     val yosysScriptContents = s"""
       |read_verilog -sv ${testDir.getAbsolutePath}/*.v
       |prep; proc; opt; memory
       |hierarchy -top $top
       |flatten
-      |sat -verify  -prove-asserts -tempinduct -set reset 0 -set-at 0 reset 1 -set-init-zero -seq 1
+      |sat -verify  -prove-asserts -tempinduct -set reset 0 -set-at 1 reset 1 -seq 1
       |""".stripMargin
     val yosysScript = writeToFile(yosysScriptContents, testDir, "lec.ys")
 
